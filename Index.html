@@ -1,1 +1,52 @@
+import { useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import { Button } from "@/components/ui/button";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+export default function PdfUploader() {
+  const [file, setFile] = useState(null);
+  const [text, setText] = useState("");
+
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      extractText(selectedFile);
+    }
+  };
+
+  const extractText = async (file) => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = async () => {
+      const pdf = await pdfjs.getDocument({ data: reader.result }).promise;
+      let extractedText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        extractedText += textContent.items.map((item) => item.str).join(" ") + " ";
+      }
+      setText(extractedText);
+    };
+  };
+
+  return (
+    <div className="p-4">
+      <input type="file" accept="application/pdf" onChange={handleFileChange} className="mb-4" />
+      {file && (
+        <Document file={file}>
+          <Page pageNumber={1} />
+        </Document>
+      )}
+      {text && (
+        <textarea
+          className="w-full h-40 p-2 border rounded mt-4"
+          value={text}
+          readOnly
+        ></textarea>
+      )}
+    </div>
+  );
+}
 
